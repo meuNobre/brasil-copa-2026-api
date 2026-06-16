@@ -11,7 +11,8 @@ model User {
   id        String    @id @default(uuid())
   email     String    @unique
   username  String    @unique
-  password  String
+  password  String?                   // nullable: usuários Google não têm senha
+  googleId  String?   @unique         // ID único retornado pelo Google
   createdAt DateTime  @default(now())
   palpites  Palpite[]
 }
