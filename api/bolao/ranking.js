@@ -1,6 +1,13 @@
 const prisma = require('../../lib/db');
+const { applyCors } = require('../../lib/middleware');
 
 module.exports = async (req, res) => {
+  applyCors(req, res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method !== 'GET') return res.status(405).end();
 
   try {
