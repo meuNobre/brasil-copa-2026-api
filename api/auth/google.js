@@ -1,5 +1,6 @@
 const { OAuth2Client } = require('google-auth-library');
 const prisma = require('../../lib/db');
+console.log('PRISMA VERSION:', prisma._clientVersion);
 const { generateToken } = require('../../lib/auth');
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
