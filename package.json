@@ -24,7 +24,7 @@
     "prisma": "^6.19.3"
   },
   "prisma": {
-    "schema": "./prisma/migrations/schema.prisma"
+    "schema": "./prisma/schema.prisma"
   }
 
 }
