@@ -1,4 +1,4 @@
-const prisma = require('../../../lib/db');
+const prisma = require('../../lib/db');
 const { applyCors } = require('../../../lib/middleware');
 
 module.exports = async (req, res) => {
