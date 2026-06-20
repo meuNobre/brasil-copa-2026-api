@@ -8,13 +8,22 @@ const client = new OAuth2Client(CLIENT_ID);
 
 function setCors(req, res) {
   const origin = req.headers.origin;
-  const allowedOrigins = ['https://brasil-copa-2026-five.vercel.app'];
-  if (allowedOrigins.includes(origin)) {
+
+  const allowed =
+    origin === 'https://brasil-copa-2026-five.vercel.app' ||
+    (origin?.includes('brasil-copa-2026') &&
+     origin?.endsWith('.vercel.app'));
+
+  if (allowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
+
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, x-cron-secret'
+  );
   res.setHeader('Access-Control-Max-Age', '86400');
 }
 

@@ -1,5 +1,5 @@
-const prisma = require('../../lib/db');
-const { applyCors } = require('../../lib/middleware');
+const prisma = require('../../../lib/db');
+const { applyCors } = require('../../../lib/middleware');
 
 module.exports = async (req, res) => {
   applyCors(req, res);
