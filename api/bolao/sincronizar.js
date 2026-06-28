@@ -1,7 +1,5 @@
 const prisma = require('../../lib/db');
 
-const BRASIL_TEAM_ID = 764;
-
 module.exports = async (req, res) => {
   if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end();
 
@@ -14,8 +12,9 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // Busca TODOS os jogos da Copa do Mundo 2026 (sem filtrar por time)
     const response = await fetch(
-      `https://api.football-data.org/v4/competitions/WC/matches?team=${BRASIL_TEAM_ID}`,
+      'https://api.football-data.org/v4/competitions/WC/matches',
       { headers: { 'X-Auth-Token': process.env.API_KEY } }
     );
 
@@ -95,13 +94,11 @@ module.exports = async (req, res) => {
     let campeoesPontuados = 0;
 
     if (final) {
-      // Descobre o nome do time vencedor
       const nomeVencedor =
         final.winnerTeamId === final.homeTeamId
           ? final.homeTeamName
           : final.awayTeamName;
 
-      // Pontua quem ainda não foi avaliado
       const palpitesCampeao = await prisma.palpiteCampeao.findMany({
         where: { pontos: null },
       });

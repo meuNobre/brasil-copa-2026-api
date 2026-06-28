@@ -2,15 +2,10 @@ const prisma = require('../../lib/db');
 const { verifyToken } = require('../../lib/auth');
 const { applyCors } = require('../../lib/middleware');
 
-const BRASIL_TEAM_ID = 764; // ID usado pela Football-Data para o Brasil
-
 module.exports = async (req, res) => {
   applyCors(req, res);
 
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return res.status(405).end();
 
   let userId = null;
@@ -20,22 +15,17 @@ module.exports = async (req, res) => {
       const payload = verifyToken(authHeader.split(' ')[1]);
       userId = payload.id;
     } catch {
-      // token inválido/expirado: segue sem usuário (não bloqueia a listagem)
+      // token inválido/expirado: segue sem usuário
     }
   }
 
   try {
     const jogos = await prisma.jogo.findMany({
-      where: {
-        OR: [
-          { homeTeamId: BRASIL_TEAM_ID },
-          { awayTeamId: BRASIL_TEAM_ID }
-        ]
-      },
+      // sem filtro de time — retorna TODOS os jogos da Copa
       orderBy: { utcDate: 'asc' },
       include: userId
         ? { palpites: { where: { userId } } }
-        : false
+        : false,
     });
 
     const result = jogos.map(jogo => {
@@ -43,7 +33,7 @@ module.exports = async (req, res) => {
         ? {
             homeScore: jogo.palpites[0].homeScore,
             awayScore: jogo.palpites[0].awayScore,
-            pontos: jogo.palpites[0].pontos
+            pontos: jogo.palpites[0].pontos,
           }
         : null;
 
@@ -52,8 +42,7 @@ module.exports = async (req, res) => {
       return {
         ...jogoSemPalpites,
         meuPalpite,
-        // o palpite só pode ser feito/editado antes do início do jogo
-        bloqueado: new Date(jogo.utcDate) <= new Date()
+        bloqueado: new Date(jogo.utcDate) <= new Date(),
       };
     });
 
