@@ -25,30 +25,37 @@ module.exports = async (req, res) => {
 
     const data = await response.json();
     const matches = data.matches || [];
-    const grupoMatches = matches.filter(m => m.group);
 
-    for (const m of grupoMatches) {
+    // sincroniza TODOS os jogos do Brasil: fase de grupos + mata-mata inteiro
+    // (jogos do mata-mata não têm "group", então antes ficavam de fora)
+    for (const m of matches) {
+      const winnerTeamId =
+        m.score?.winner === 'HOME_TEAM' ? (m.homeTeam?.id ?? null) :
+        m.score?.winner === 'AWAY_TEAM' ? (m.awayTeam?.id ?? null) :
+        null;
+
+      const campos = {
+        status: m.status,
+        // o adversário do mata-mata começa como "Vencedor do Jogo X" (id ausente)
+        // e precisa ser atualizado quando o confronto anterior se resolve
+        homeTeamId: m.homeTeam?.id ?? 0,
+        homeTeamName: m.homeTeam?.name || 'A definir',
+        awayTeamId: m.awayTeam?.id ?? 0,
+        awayTeamName: m.awayTeam?.name || 'A definir',
+        homeScore: m.score?.fullTime?.home ?? null,
+        awayScore: m.score?.fullTime?.away ?? null,
+        utcDate: new Date(m.utcDate),
+        groupName: m.group || null,
+        stage: m.stage || null,
+        winnerTeamId,
+        penaltiesHome: m.score?.penalties?.home ?? null,
+        penaltiesAway: m.score?.penalties?.away ?? null
+      };
+
       await prisma.jogo.upsert({
         where: { id: m.id },
-        update: {
-          status: m.status,
-          homeScore: m.score?.fullTime?.home ?? null,
-          awayScore: m.score?.fullTime?.away ?? null,
-          utcDate: new Date(m.utcDate),
-          groupName: m.group
-        },
-        create: {
-          id: m.id,
-          homeTeamId: m.homeTeam.id,
-          homeTeamName: m.homeTeam.name,
-          awayTeamId: m.awayTeam.id,
-          awayTeamName: m.awayTeam.name,
-          utcDate: new Date(m.utcDate),
-          status: m.status,
-          homeScore: m.score?.fullTime?.home ?? null,
-          awayScore: m.score?.fullTime?.away ?? null,
-          groupName: m.group
-        }
+        update: campos,
+        create: { id: m.id, ...campos }
       });
     }
 
@@ -86,7 +93,7 @@ module.exports = async (req, res) => {
     res.json({
       ok: true,
       totalMatchesRecebidos: matches.length,
-      jogosSincronizados: grupoMatches.length,
+      jogosSincronizados: matches.length,
       palpitesPontuados
     });
   } catch (err) {

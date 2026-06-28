@@ -30,8 +30,7 @@ module.exports = async (req, res) => {
         OR: [
           { homeTeamId: BRASIL_TEAM_ID },
           { awayTeamId: BRASIL_TEAM_ID }
-        ],
-        groupName: { not: null }
+        ]
       },
       orderBy: { utcDate: 'asc' },
       include: userId
