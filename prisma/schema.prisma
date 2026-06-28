@@ -4,33 +4,38 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  username  String    @unique
-  password  String?
-  createdAt DateTime  @default(now())
-  googleId  String?   @unique
-  palpites  Palpite[]
+  id             String          @id @default(uuid())
+  email          String          @unique
+  username       String          @unique
+  password       String?
+  createdAt      DateTime        @default(now())
+  googleId       String?         @unique
+  palpites       Palpite[]
+  palpiteCampeao PalpiteCampeao?
 }
 
 model Jogo {
-  id           Int       @id
-  homeTeamId   Int
-  homeTeamName String
-  awayTeamId   Int
-  awayTeamName String
-  utcDate      DateTime
-  status       String
-  homeScore    Int?
-  awayScore    Int?
-  groupName    String?
-  palpites     Palpite[]
+  id            Int       @id
+  homeTeamId    Int
+  homeTeamName  String
+  awayTeamId    Int
+  awayTeamName  String
+  utcDate       DateTime
+  status        String
+  homeScore     Int?
+  awayScore     Int?
+  groupName     String?
+  stage         String?
+  winnerTeamId  Int?
+  penaltiesHome Int?
+  penaltiesAway Int?
+  palpites      Palpite[]
 }
 
 model Palpite {
@@ -46,4 +51,14 @@ model Palpite {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, jogoId])
+}
+
+model PalpiteCampeao {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  teamName  String
+  pontos    Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

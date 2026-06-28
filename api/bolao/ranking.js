@@ -4,10 +4,7 @@ const { applyCors } = require('../../lib/middleware');
 module.exports = async (req, res) => {
   applyCors(req, res);
 
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return res.status(405).end();
 
   try {
@@ -16,23 +13,32 @@ module.exports = async (req, res) => {
         id: true,
         username: true,
         palpites: {
-          select: { pontos: true, jogo: { select: { status: true } } }
-        }
-      }
+          select: { pontos: true, jogo: { select: { status: true } } },
+        },
+        palpiteCampeao: {
+          select: { teamName: true, pontos: true },
+        },
+      },
     });
 
     const ranking = users.map(u => {
       const palpitesFinalizados = u.palpites.filter(p => p.jogo.status === 'FINISHED');
-      const pontos = palpitesFinalizados.reduce((sum, p) => sum + (p.pontos || 0), 0);
+      const pontosPalpites = palpitesFinalizados.reduce((sum, p) => sum + (p.pontos || 0), 0);
+      const pontosCampeao = u.palpiteCampeao?.pontos ?? 0;
+      const pontos = pontosPalpites + pontosCampeao;
+
       const acertosExatos = palpitesFinalizados.filter(p => p.pontos === 10).length;
       const acertosResultado = palpitesFinalizados.filter(p => p.pontos === 5).length;
 
       return {
         username: u.username,
         pontos,
+        pontosPalpites,
+        pontosCampeao,
         jogosAvaliados: palpitesFinalizados.length,
         acertosExatos,
-        acertosResultado
+        acertosResultado,
+        palpiteCampeao: u.palpiteCampeao?.teamName ?? null,
       };
     });
 
@@ -50,4 +56,3 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'Erro ao montar ranking' });
   }
 };
-

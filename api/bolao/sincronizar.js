@@ -26,8 +26,6 @@ module.exports = async (req, res) => {
     const data = await response.json();
     const matches = data.matches || [];
 
-    // sincroniza TODOS os jogos do Brasil: fase de grupos + mata-mata inteiro
-    // (jogos do mata-mata não têm "group", então antes ficavam de fora)
     for (const m of matches) {
       const winnerTeamId =
         m.score?.winner === 'HOME_TEAM' ? (m.homeTeam?.id ?? null) :
@@ -36,8 +34,6 @@ module.exports = async (req, res) => {
 
       const campos = {
         status: m.status,
-        // o adversário do mata-mata começa como "Vencedor do Jogo X" (id ausente)
-        // e precisa ser atualizado quando o confronto anterior se resolve
         homeTeamId: m.homeTeam?.id ?? 0,
         homeTeamName: m.homeTeam?.name || 'A definir',
         awayTeamId: m.awayTeam?.id ?? 0,
@@ -49,19 +45,20 @@ module.exports = async (req, res) => {
         stage: m.stage || null,
         winnerTeamId,
         penaltiesHome: m.score?.penalties?.home ?? null,
-        penaltiesAway: m.score?.penalties?.away ?? null
+        penaltiesAway: m.score?.penalties?.away ?? null,
       };
 
       await prisma.jogo.upsert({
         where: { id: m.id },
         update: campos,
-        create: { id: m.id, ...campos }
+        create: { id: m.id, ...campos },
       });
     }
 
+    // --- Pontuar palpites de jogos finalizados ---
     const jogosFinalizados = await prisma.jogo.findMany({
       where: { status: 'FINISHED' },
-      include: { palpites: { where: { pontos: null } } }
+      include: { palpites: { where: { pontos: null } } },
     });
 
     let palpitesPontuados = 0;
@@ -83,10 +80,39 @@ module.exports = async (req, res) => {
 
         await prisma.palpite.update({
           where: { id: palpite.id },
-          data: { pontos }
+          data: { pontos },
         });
 
         palpitesPontuados++;
+      }
+    }
+
+    // --- Pontuar palpites de campeão (quando a Final encerrar) ---
+    const final = await prisma.jogo.findFirst({
+      where: { stage: 'FINAL', status: 'FINISHED', winnerTeamId: { not: null } },
+    });
+
+    let campeoesPontuados = 0;
+
+    if (final) {
+      // Descobre o nome do time vencedor
+      const nomeVencedor =
+        final.winnerTeamId === final.homeTeamId
+          ? final.homeTeamName
+          : final.awayTeamName;
+
+      // Pontua quem ainda não foi avaliado
+      const palpitesCampeao = await prisma.palpiteCampeao.findMany({
+        where: { pontos: null },
+      });
+
+      for (const pc of palpitesCampeao) {
+        const acertou = pc.teamName === nomeVencedor;
+        await prisma.palpiteCampeao.update({
+          where: { id: pc.id },
+          data: { pontos: acertou ? 20 : 0 },
+        });
+        campeoesPontuados++;
       }
     }
 
@@ -94,7 +120,8 @@ module.exports = async (req, res) => {
       ok: true,
       totalMatchesRecebidos: matches.length,
       jogosSincronizados: matches.length,
-      palpitesPontuados
+      palpitesPontuados,
+      campeoesPontuados,
     });
   } catch (err) {
     console.error(err);
